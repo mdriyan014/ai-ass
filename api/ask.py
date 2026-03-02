@@ -5,7 +5,7 @@ from fastapi.responses import JSONResponse
 app = FastAPI()
 
 # 🔥 এখানে তোমার আসল ChatAnywhere API key বসাও
-API_KEY = "sk-sRcjuojZqugywcfj8IY8qBgGZgEr7KWNVydiZt5QMCAY2xuf"
+API_KEY = "sk-তোমার_আসল_key"
 
 CHATANYWHERE_URL = "https://api.chatanywhere.tech/v1/chat/completions"
 
