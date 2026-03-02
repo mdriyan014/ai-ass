@@ -1,12 +1,13 @@
-import os
 import httpx
 from fastapi import FastAPI, Query
 from fastapi.responses import JSONResponse
 
 app = FastAPI()
 
+# 🔥 এখানে তোমার আসল ChatAnywhere API key বসাও
+API_KEY = "sk-sRcjuojZqugywcfj8IY8qBgGZgEr7KWNVydiZt5QMCAY2xuf"
+
 CHATANYWHERE_URL = "https://api.chatanywhere.tech/v1/chat/completions"
-API_KEY = os.getenv("CHATANYWHERE_API_KEY")
 
 ACCESS_KEY = "dark"
 
@@ -30,9 +31,6 @@ async def ask_ai(
             {"status": False, "error": "Invalid access key"},
             status_code=403
         )
-
-    if not API_KEY:
-        return {"status": False, "error": "API key not configured"}
 
     headers = {
         "Authorization": f"Bearer {API_KEY}",
