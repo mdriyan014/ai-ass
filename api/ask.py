@@ -107,64 +107,59 @@ async def ask_ai(
 
     language = detect_language(ask)
 
-    # 🔥 Summon system
-if check_summon(ask):
+    # 🔥 SUMMON SYSTEM
+    if check_summon(ask):
 
-    notify_prompt = [
-        {
-            "role": "system",
-            "content": "Write a short intelligent notification message to inform Riyan that someone is calling him. Keep it short and natural."
-        },
-        {
-            "role": "user",
-            "content": f"User message: {ask}"
+        notify_prompt = [
+            {
+                "role": "system",
+                "content": "Write a short intelligent notification message to inform Riyan that someone is calling him. Keep it short and natural."
+            },
+            {
+                "role": "user",
+                "content": f"User message: {ask}"
+            }
+        ]
+
+        headers = {
+            "Authorization": f"Bearer {API_KEY}",
+            "Content-Type": "application/json"
         }
-    ]
 
-    headers = {
-        "Authorization": f"Bearer {API_KEY}",
-        "Content-Type": "application/json"
-    }
+        payload_notify = {
+            "model": "gpt-4o-mini-ca",
+            "messages": notify_prompt,
+            "temperature": 0.7,
+            "max_tokens": 100
+        }
 
-    payload_notify = {
-        "model": "gpt-4o-mini-ca",
-        "messages": notify_prompt,
-        "temperature": 0.7,
-        "max_tokens": 100
-    }
+        try:
+            async with httpx.AsyncClient(timeout=20) as client:
+                response_notify = await client.post(
+                    CHATANYWHERE_URL,
+                    headers=headers,
+                    json=payload_notify
+                )
 
-    try:
-        async with httpx.AsyncClient(timeout=20) as client:
-            response_notify = await client.post(
-                CHATANYWHERE_URL,
-                headers=headers,
-                json=payload_notify
-            )
+            data_notify = response_notify.json()
 
-        data_notify = response_notify.json()
+            if "choices" in data_notify:
+                notify_text = data_notify["choices"][0]["message"]["content"]
+            else:
+                notify_text = "Riyan, someone is calling you."
 
-        if "choices" in data_notify:
-            notify_text = data_notify["choices"][0]["message"]["content"]
-        else:
+        except:
             notify_text = "Riyan, someone is calling you."
 
-    except:
-        notify_text = "Riyan, someone is calling you."
+        notify_riyan(notify_text)
 
-    notify_riyan(notify_text)
+        if language == "bn":
+            return {"status": True, "answer": "আমি রিয়ানকে জানিয়ে দিয়েছি।"}
+        else:
+            return {"status": True, "answer": "I have notified Riyan."}
 
-    if language == "bn":
-        return {
-            "status": True,
-            "answer": "আমি রিয়ানকে জানিয়ে দিয়েছি।"
-        }
-    else:
-        return {
-            "status": True,
-            "answer": "I have notified Riyan."
-        }
+    # 🔥 NORMAL AI MODE
 
-    # Mode control
     if mode == "detailed":
         ask = ask + "\nGive a slightly detailed explanation."
     else:
