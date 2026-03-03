@@ -21,8 +21,7 @@ RATE_WINDOW = 60
 
 rate_store = {}
 
-# 🔥 তোমার SYSTEM PROMPT এখানে বসাবে
-SYSTEM_PROMPT = """ 
+SYSTEM_PROMPT = """
 <PUT YOUR SYSTEM PROMPT HERE>
 """
 
@@ -40,34 +39,6 @@ def check_rate(ip):
     rate_store[ip] = bucket
     return True
 
-# ================= LANGUAGE DETECT =================
-
-def detect_language(text):
-    if any("\u0980" <= c <= "\u09FF" for c in text):
-        return "bn"
-    return "en"
-
-# ================= SUMMON DETECT =================
-
-def check_summon(text):
-    text = text.lower()
-
-    triggers = [
-        "call riyan",
-        "riyan ke dak",
-        "riyan ke dako",
-        "riyan ke bolo",
-        "riyan ko bulao",
-        "summon riyan",
-        "dak riyan",
-        "ডাক রিয়ান",
-        "রিয়ান কে ডাক",
-        "রিয়ানকে ডাক",
-        "রিয়ানকে বল",
-        "রিয়ানকে জানাও"
-    ]
-
-    return any(trigger in text for trigger in triggers)
 
 # ================= TELEGRAM NOTIFY =================
 
@@ -76,11 +47,12 @@ def notify_riyan(message):
         url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
         payload = {
             "chat_id": TELEGRAM_CHAT_ID,
-            "text": f"🔔 Riyan Summoned!\n\nUser said:\n{message}"
+            "text": message
         }
         requests.post(url, data=payload, timeout=10)
     except:
         pass
+
 
 # ================= ROUTES =================
 
@@ -92,6 +64,7 @@ async def home():
         "usage": "/api/ask?key=dark&ask=hello"
     }
 
+
 @app.get("/api/ask")
 async def ask_ai(
     key: str = Query(...),
@@ -99,29 +72,78 @@ async def ask_ai(
     mode: str = Query("short"),
     request_ip: str = Query("unknown")
 ):
+
     if key != ACCESS_KEY:
         return JSONResponse({"status": False, "error": "Invalid access key"}, status_code=403)
 
     if not check_rate(request_ip):
         return JSONResponse({"status": False, "error": "Rate limit exceeded"}, status_code=429)
 
-    language = detect_language(ask)
+    headers = {
+        "Authorization": f"Bearer {API_KEY}",
+        "Content-Type": "application/json"
+    }
 
-    # ================= SUMMON SYSTEM =================
-    if check_summon(ask):
+    # ================= STEP 1: AI DETECT IF OWNER NEEDED =================
+
+    detect_prompt = [
+        {
+            "role": "system",
+            "content": """
+তুমি একটি বিশ্লেষণকারী AI।
+
+ইউজারের মেসেজ দেখে নির্ধারণ করো:
+রিয়ানের সরাসরি মনোযোগ প্রয়োজন কি না।
+
+শুধু YES অথবা NO উত্তর দাও।
+"""
+        },
+        {
+            "role": "user",
+            "content": ask
+        }
+    ]
+
+    detect_payload = {
+        "model": "gpt-4o-mini-ca",
+        "messages": detect_prompt,
+        "temperature": 0,
+        "max_tokens": 5
+    }
+
+    owner_needed = False
+
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            detect_response = await client.post(
+                CHATANYWHERE_URL,
+                headers=headers,
+                json=detect_payload
+            )
+
+        detect_data = detect_response.json()
+
+        if "choices" in detect_data:
+            result = detect_data["choices"][0]["message"]["content"].strip().upper()
+            owner_needed = "YES" in result
+
+    except:
+        pass
+
+
+    # ================= STEP 2: IF OWNER NEEDED → SEND TELEGRAM =================
+
+    if owner_needed:
 
         notify_prompt = [
             {
                 "role": "system",
                 "content": """
-তুমি রিয়ানের ব্যক্তিগত সহকারী।
+তুমি Jarvis-এর মতো রিয়ানের ব্যক্তিগত সহকারী।
 
-তোমার কাজ:
-- ইউজার যা বলেছে তা বুঝে বাংলায় ছোট ও স্বাভাবিক নোটিফিকেশন তৈরি করা।
-- সরাসরি "কেউ তোমাকে ডাকছে" বলবে না।
-- স্বাভাবিকভাবে বোঝাবে যে কেউ রিয়ানের মনোযোগ বা সাহায্য চাইছে।
-- ছোট, পরিষ্কার, স্বাভাবিক ভাষা ব্যবহার করবে।
-- কোনো ইমোজি ব্যবহার করবে না।
+রিয়ানের উদ্দেশ্যে বাংলায় একটি ছোট, প্রফেশনাল এবং সম্মানজনক নোটিফিকেশন লেখো।
+স্বাভাবিকভাবে বোঝাবে যে কেউ তার মনোযোগ চাইছে।
+ইমোজি ব্যবহার করবে না।
 """
             },
             {
@@ -130,12 +152,7 @@ async def ask_ai(
             }
         ]
 
-        headers = {
-            "Authorization": f"Bearer {API_KEY}",
-            "Content-Type": "application/json"
-        }
-
-        payload_notify = {
+        notify_payload = {
             "model": "gpt-4o-mini-ca",
             "messages": notify_prompt,
             "temperature": 0.7,
@@ -144,40 +161,31 @@ async def ask_ai(
 
         try:
             async with httpx.AsyncClient(timeout=20) as client:
-                response_notify = await client.post(
+                notify_response = await client.post(
                     CHATANYWHERE_URL,
                     headers=headers,
-                    json=payload_notify
+                    json=notify_payload
                 )
 
-            data_notify = response_notify.json()
+            notify_data = notify_response.json()
 
-            if "choices" in data_notify:
-                notify_text = data_notify["choices"][0]["message"]["content"]
+            if "choices" in notify_data:
+                notify_text = notify_data["choices"][0]["message"]["content"]
             else:
-                notify_text = "রিয়ান, কারো একটি গুরুত্বপূর্ণ অনুরোধ এসেছে।"
+                notify_text = "রিয়ানের মনোযোগ প্রয়োজন।"
+
+            notify_riyan(notify_text)
 
         except:
-            notify_text = "রিয়ান, কারো একটি গুরুত্বপূর্ণ অনুরোধ এসেছে।"
+            pass
 
-        notify_riyan(notify_text)
 
-        return {
-            "status": True,
-            "answer": "আমি রিয়ানকে জানিয়ে দিয়েছি।"
-        }
-
-    # ================= NORMAL AI MODE =================
+    # ================= STEP 3: NORMAL AI RESPONSE =================
 
     if mode == "detailed":
-        ask += "\nGive a slightly detailed explanation."
+        ask += "\nGive slightly detailed explanation."
     else:
         ask += "\nAnswer short and clear."
-
-    headers = {
-        "Authorization": f"Bearer {API_KEY}",
-        "Content-Type": "application/json"
-    }
 
     payload = {
         "model": "gpt-4o-mini-ca",
@@ -204,8 +212,6 @@ async def ask_ai(
 
         return {
             "status": True,
-            "language": language,
-            "mode": mode,
             "answer": data["choices"][0]["message"]["content"]
         }
 
