@@ -107,28 +107,26 @@ async def ask_ai(
 
     language = detect_language(ask)
 
-    # 🔥 SUMMON SYSTEM
+    # ================= SUMMON SYSTEM =================
     if check_summon(ask):
 
         notify_prompt = [
             {
                 "role": "system",
                 "content": """
-You are generating a private notification message to Riyan.
+তুমি রিয়ানের ব্যক্তিগত সহকারী।
 
-Rules:
-- Write like an intelligent assistant.
-- Be short.
-- Sound natural.
-- Mention what the user wants.
-- Do NOT say "a user called you".
-- Make it contextual.
-- No emojis.
+তোমার কাজ:
+- ইউজার যা বলেছে তা বুঝে বাংলায় ছোট ও স্বাভাবিক নোটিফিকেশন তৈরি করা।
+- সরাসরি "কেউ তোমাকে ডাকছে" বলবে না।
+- স্বাভাবিকভাবে বোঝাবে যে কেউ রিয়ানের মনোযোগ বা সাহায্য চাইছে।
+- ছোট, পরিষ্কার, স্বাভাবিক ভাষা ব্যবহার করবে।
+- কোনো ইমোজি ব্যবহার করবে না।
 """
             },
             {
                 "role": "user",
-                "content": f"The user said: {ask}"
+                "content": f"ইউজার বলেছে: {ask}"
             }
         ]
 
@@ -140,7 +138,7 @@ Rules:
         payload_notify = {
             "model": "gpt-4o-mini-ca",
             "messages": notify_prompt,
-            "temperature": 0.8,
+            "temperature": 0.7,
             "max_tokens": 120
         }
 
@@ -157,19 +155,19 @@ Rules:
             if "choices" in data_notify:
                 notify_text = data_notify["choices"][0]["message"]["content"]
             else:
-                notify_text = f"Someone mentioned you: {ask}"
+                notify_text = "রিয়ান, কারো একটি গুরুত্বপূর্ণ অনুরোধ এসেছে।"
 
         except:
-            notify_text = f"Someone mentioned you: {ask}"
+            notify_text = "রিয়ান, কারো একটি গুরুত্বপূর্ণ অনুরোধ এসেছে।"
 
         notify_riyan(notify_text)
 
-        if language == "bn":
-            return {"status": True, "answer": "আমি রিয়ানকে জানিয়ে দিয়েছি।"}
-        else:
-            return {"status": True, "answer": "I have informed Riyan."}
+        return {
+            "status": True,
+            "answer": "আমি রিয়ানকে জানিয়ে দিয়েছি।"
+        }
 
-    # 🔥 NORMAL AI MODE
+    # ================= NORMAL AI MODE =================
 
     if mode == "detailed":
         ask += "\nGive a slightly detailed explanation."
