@@ -113,11 +113,22 @@ async def ask_ai(
         notify_prompt = [
             {
                 "role": "system",
-                "content": "Write a short intelligent notification message to inform Riyan that someone is calling him. Keep it short and natural."
+                "content": """
+You are generating a private notification message to Riyan.
+
+Rules:
+- Write like an intelligent assistant.
+- Be short.
+- Sound natural.
+- Mention what the user wants.
+- Do NOT say "a user called you".
+- Make it contextual.
+- No emojis.
+"""
             },
             {
                 "role": "user",
-                "content": f"User message: {ask}"
+                "content": f"The user said: {ask}"
             }
         ]
 
@@ -129,8 +140,8 @@ async def ask_ai(
         payload_notify = {
             "model": "gpt-4o-mini-ca",
             "messages": notify_prompt,
-            "temperature": 0.7,
-            "max_tokens": 100
+            "temperature": 0.8,
+            "max_tokens": 120
         }
 
         try:
@@ -146,24 +157,24 @@ async def ask_ai(
             if "choices" in data_notify:
                 notify_text = data_notify["choices"][0]["message"]["content"]
             else:
-                notify_text = "Riyan, someone is calling you."
+                notify_text = f"Someone mentioned you: {ask}"
 
         except:
-            notify_text = "Riyan, someone is calling you."
+            notify_text = f"Someone mentioned you: {ask}"
 
         notify_riyan(notify_text)
 
         if language == "bn":
             return {"status": True, "answer": "আমি রিয়ানকে জানিয়ে দিয়েছি।"}
         else:
-            return {"status": True, "answer": "I have notified Riyan."}
+            return {"status": True, "answer": "I have informed Riyan."}
 
     # 🔥 NORMAL AI MODE
 
     if mode == "detailed":
-        ask = ask + "\nGive a slightly detailed explanation."
+        ask += "\nGive a slightly detailed explanation."
     else:
-        ask = ask + "\nAnswer short and clear."
+        ask += "\nAnswer short and clear."
 
     headers = {
         "Authorization": f"Bearer {API_KEY}",
