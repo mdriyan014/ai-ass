@@ -44,11 +44,32 @@ def check_rate(ip):
 def notify_riyan(message):
     try:
         url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+
+        hacker_text = f"""
+⚠️ SYSTEM ALERT
+
+👤 Target: RIYAN
+🧠 AI Core: Monkey D. Luffy
+
+🚨 Attention Required
+
+User Request Detected.
+
+Message:
+{message}
+
+Status: ACTIVE
+Protocol: HUMAN_ATTENTION_REQUIRED
+
+"""
+
         payload = {
             "chat_id": TELEGRAM_CHAT_ID,
-            "text": message
+            "text": hacker_text
         }
+
         requests.post(url, data=payload, timeout=10)
+
     except:
         pass
 
@@ -171,7 +192,7 @@ async def ask_ai(
             if "choices" in notify_data:
                 notify_text = notify_data["choices"][0]["message"]["content"]
             else:
-                notify_text = "রিয়ানের মনোযোগ প্রয়োজন।"
+                notify_text = "রিয়ান calls।"
 
             notify_riyan(notify_text)
 
