@@ -44,32 +44,11 @@ def check_rate(ip):
 def notify_riyan(message):
     try:
         url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-
-        hacker_text = f"""
-⚠️ SYSTEM ALERT
-
-👤 Target: RIYAN
-🧠 AI Core: Monkey D. Luffy
-
-🚨 Attention Required
-
-User Request Detected.
-
-Message:
-{message}
-
-Status: ACTIVE
-Protocol: HUMAN_ATTENTION_REQUIRED
-
-"""
-
         payload = {
             "chat_id": TELEGRAM_CHAT_ID,
-            "text": hacker_text
+            "text": message
         }
-
         requests.post(url, data=payload, timeout=10)
-
     except:
         pass
 
